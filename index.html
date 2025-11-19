@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Notfall-Mesh Panel — Demo</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1b4f72">
+
+<style>
+  :root{
+    --bg:#f7fbfd; --card:#ffffff; --accent:#1b4f72; --danger:#c0392b;
+    --ok:#16a085; font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;
+  }
+  body{ margin:0; background:var(--bg); color:#0b2b40; }
+  header{ background:linear-gradient(90deg,var(--accent),#2a74a6); color:white; padding:18px 16px; display:flex; align-items:center; gap:12px; }
+  header h1{ margin:0; font-size:1.1rem; }
+  header .subline{ color:white; font-size:0.9rem; margin-top:4px; }
+  main{ padding:16px; max-width:980px; margin:16px auto; }
+  .card{ background:var(--card); border-radius:10px; padding:14px; box-shadow:0 6px 18px rgba(11,43,64,0.06); margin-bottom:12px;}
+  label{ display:block; font-weight:600; margin-bottom:6px; font-size:0.9rem; }
+  select,input[type="text"],textarea{ width:100%; padding:10px; border-radius:8px; border:1px solid #d6e5ee; font-size:0.95rem; box-sizing:border-box; }
+  .row{ display:flex; gap:10px; }
+  .row > *{ flex:1; }
+  .btn{ padding:10px 12px; border-radius:10px; background:var(--accent); color:white; border:0; font-weight:700; cursor:pointer; }
+  .btn.secondary{ background:#2e8f73; }
+  .btn.danger{ background:var(--danger); }
+  .muted{ color:#567; font-size:0.9rem; }
+  .small{ font-size:0.85rem; color:#446; }
+  .actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .pill{ display:inline-block; padding:6px 10px; border-radius:999px; background:#eef6fb; color:var(--accent); font-weight:700; }
+  .history-item{ padding:10px; border-radius:8px; border:1px solid #e6f0f6; margin-bottom:8px; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:700px){ .grid{ grid-template-columns:1fr; } header{ flex-direction:column; align-items:flex-start; gap:6px;} }
+  footer{ text-align:center; color:#6b8; margin-top:8px; font-size:0.85rem; }
+  .qr{ width:130px; height:130px; background:#f1f5f7; display:flex; align-items:center; justify-content:center; border-radius:8px; }
+</style>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 2L3 7v7c0 5 4 9 9 9s9-4 9-9V7l-9-5z" fill="white" opacity="0.12"/><path d="M12 2l9 5v7c0 5-4 9-9 9S3 19 3 14V7l9-5z" stroke="white" stroke-width="1.2" fill="none"/></svg>
+    <div>
+      <h1>Notfall-Mesh Panel — Demo</h1>
+      <div class="subline">Erstelle eine Notfallmeldung und teile sie über dein Mesh / Telefon.</div>
+    </div>
+  </div>
+  <div style="margin-left:auto" aria-hidden>
+    <span class="pill" id="onlineIndicator">Offline</span>
+  </div>
+</header>
+
+<main>
+  <section class="card" aria-labelledby="alarmHeader">
+    <h2 id="alarmHeader">Neue Notfallmeldung</h2>
+    <div class="grid" style="margin-top:10px;">
+      <div>
+        <label for="recipient">Empfänger</label>
+        <select id="recipient" aria-label="Empfänger">
+          <option value="polizei">Polizei</option>
+          <option value="feuerwehr">Feuerwehr</option>
+          <option value="rettung">Rettung / Ambulanz</option>
+          <option value="community">Nachbarschaft</option>
+        </select>
+      </div>
+      <div>
+        <label for="priority">Priorität</label>
+        <select id="priority">
+          <option value="hoch">Hoch (Lebensgefahr)</option>
+          <option value="mittel">Mittel (Sachschaden / Hilfe)</option>
+          <option value="niedrig">Niedrig (Info / Vorsicht)</option>
+        </select>
+      </div>
+    </div>
+
+    <label for="message" style="margin-top:10px;">Kurzbeschreibung</label>
+    <textarea id="message" rows="4" placeholder="Was ist passiert? Wer wird benötigt?"></textarea>
+
+    <div style="margin-top:10px;" class="row">
+      <div>
+        <label for="name">Ihr Name (optional)</label>
+        <input id="name" type="text" placeholder="Max Mustermann">
+      </div>
+      <div>
+        <label for="phone">Telefon (optional)</label>
+        <input id="phone" type="text" placeholder="+43 650 ..." inputmode="tel">
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+      <button class="btn" id="useLocation">Standort hinzufügen</button>
+      <div class="muted small" id="locStatus">Kein Standort</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="createBtn">Meldung erstellen</button>
+      <button class="btn secondary" id="copyPayload">Payload kopieren</button>
+      <button class="btn secondary" id="downloadPayload">JSON herunterladen</button>
+      <button class="btn danger" id="clearAll">Alle löschen</button>
+    </div>
+
+    <div style="display:flex; gap:12px; align-items:center; margin-top:12px;">
+      <div class="qr" id="qrContainer" title="QR der Payload">QR</div>
+      <div style="flex:1;">
+        <div class="small">Generierte Payload (Base64, kurz):</div>
+        <textarea id="payloadShort" rows="3" readonly style="font-family:monospace; width:100%; margin-top:6px;"></textarea>
+      </div>
+    </div>
+
+   
+  </section>
+
+  <section class="card" aria-labelledby="historyHeader">
+    <h2 id="historyHeader">Verlauf</h2>
+    <div id="historyList" class="muted small">Noch keine Meldungen</div>
+  </section>
+
+</main>
+
+<script>
+/* Minimal offline PWA + local state; no server required.
+   Funktional:
+   - Erstelle Meldung
+   - Speichere lokal (localStorage)
+   - Erzeuge payload JSON + Base64
+   - Zeige QR (simple generation via canvas)
+*/
+
+const onlineIndicator = document.getElementById('onlineIndicator');
+function setOnlineUI(){ onlineIndicator.textContent = navigator.onLine ? 'Online' : 'Offline'; onlineIndicator.style.background = navigator.onLine ? '#16a085' : '#95a5a6'; }
+window.addEventListener('online', setOnlineUI);
+window.addEventListener('offline', setOnlineUI);
+setOnlineUI();
+
+const locStatus = document.getElementById('locStatus');
+let lastCoords = null;
+document.getElementById('useLocation').addEventListener('click', async ()=>{
+  locStatus.textContent = 'Standort wird ermittelt…';
+  try{
+    const pos = await new Promise((res,rej)=> navigator.geolocation.getCurrentPosition(res, rej, {enableHighAccuracy:true, timeout:12000}));
+    lastCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, ts: pos.timestamp };
+    locStatus.textContent = `Lat ${lastCoords.lat.toFixed(4)}, Lon ${lastCoords.lon.toFixed(4)} (±${Math.round(lastCoords.acc)}m)`;
+  }catch(err){
+    locStatus.textContent = 'Standort nicht verfügbar';
+    console.warn(err);
+  }
+});
+
+function loadHistory(){ return JSON.parse(localStorage.getItem('nf_history')||'[]'); }
+function saveHistory(h){ localStorage.setItem('nf_history', JSON.stringify(h)); }
+
+function renderHistory(){
+  const list = document.getElementById('historyList');
+  const h = loadHistory();
+  if(!h.length){ list.textContent = 'Noch keine Meldungen'; return; }
+  list.innerHTML = '';
+  h.slice().reverse().forEach(item=>{
+    const d = document.createElement('div'); d.className='history-item';
+    d.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+      <div><strong>${item.recipient.toUpperCase()}</strong> · ${new Date(item.created).toLocaleString()}</div>
+      <div class="small">${item.priority}</div>
+    </div>
+    <div style="margin-top:6px;">${escapeHtml(item.message)}</div>
+    <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
+      <button class="btn secondary" data-id="${item.id}" onclick="copyPayloadFor('${item.id}')">Kopieren</button>
+      <button class="btn" data-id="${item.id}" onclick="downloadFor('${item.id}')">Herunterladen</button>
+    </div>`;
+    list.appendChild(d);
+  });
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+function makePayload(obj){
+  // Basic schema: {id, recipient, priority, message, name, phone, coords, created}
+  const json = JSON.stringify(obj);
+  const b64 = btoa(unescape(encodeURIComponent(json))); // safe base64
+  return { json, b64 };
+}
+
+function genId(){ return 'm'+Math.random().toString(36).slice(2,10); }
+
+document.getElementById('createBtn').addEventListener('click', ()=>{
+  const recipient = document.getElementById('recipient').value;
+  const priority = document.getElementById('priority').value;
+  const message = document.getElementById('message').value.trim();
+  const name = document.getElementById('name').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  if(!message){ alert('Bitte eine Beschreibung eingeben.'); return; }
+  const now = Date.now();
+  const payloadObj = { id: genId(), recipient, priority, message, name: name||null, phone: phone||null, coords: lastCoords||null, created: now };
+  const { json, b64 } = makePayload(payloadObj);
+
+  // Save to history
+  const h = loadHistory(); h.push(payloadObj); saveHistory(h); renderHistory();
+
+  document.getElementById('payloadShort').value = b64;
+  renderQR(b64);
+
+  // quick-copy and hint
+  navigator.clipboard?.writeText(b64).catch(()=>{});
+  alert('Meldung erstellt. Payload wurde in die Zwischenablage kopiert (Base64). Jetzt kannst du sie an ein Mesh-Gerät weiterleiten.');
+});
+
+document.getElementById('copyPayload').addEventListener('click', ()=>{
+  const v = document.getElementById('payloadShort').value;
+  if(!v){ alert('Keine Payload vorhanden — erstelle eine Meldung.'); return; }
+  navigator.clipboard.writeText(v).then(()=> alert('Payload kopiert.'), ()=> alert('Kopieren nicht möglich.'));
+});
+
+document.getElementById('downloadPayload').addEventListener('click', ()=>{
+  const v = document.getElementById('payloadShort').value;
+  if(!v){ alert('Keine Payload vorhanden — erstelle eine Meldung.'); return; }
+  const blob = new Blob([v], {type:'text/plain'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'notfall_payload.txt'; a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById('clearAll').addEventListener('click', ()=>{
+  if(!confirm('Alle lokal gespeicherten Meldungen löschen?')) return;
+  localStorage.removeItem('nf_history'); renderHistory();
+});
+
+window.copyPayloadFor = function(id){
+  const h = loadHistory(); const item = h.find(x=>x.id===id);
+  if(!item) return alert('Nicht gefunden');
+  const { b64 } = makePayload(item);
+  navigator.clipboard.writeText(b64).then(()=> alert('Payload kopiert.'), ()=> alert('Kopieren nicht möglich.'));
+}
+
+window.downloadFor = function(id){
+  const h = loadHistory(); const item = h.find(x=>x.id===id);
+  if(!item) return alert('Nicht gefunden');
+  const { b64 } = makePayload(item);
+  const blob = new Blob([b64], {type:'text/plain'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `payload_${item.id}.txt`; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* QR generation: tiny canvas QR renderer (no external lib) - we'll implement a very small, limited QR-like rendering:
+   For demo purposes we draw hashed blocks based on bytes. This is NOT a real QR standard; it's for demo scanning with camera-based apps only if they read text.
+   For real product: use a proper QR lib (qrcode.js) and make sure payload length fits QR capacity.
+*/
+function renderQR(text){
+  const box = document.getElementById('qrContainer');
+  // create canvas
+  const canvas = document.createElement('canvas'); const size = 130; canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,size,size);
+  ctx.fillStyle = '#000';
+  // simple hash to fill blocks
+  const data = Array.from(unescape(encodeURIComponent(text))).map(c=>c.charCodeAt(0));
+  for(let y=0;y<13;y++){
+    for(let x=0;x<13;x++){
+      const idx = (x + y*13) % data.length;
+      const v = data[idx];
+      if(((v >> ((x+y)%8)) & 1)===1){
+        ctx.fillRect(x*(size/13), y*(size/13), (size/13)-1, (size/13)-1);
+      }
+    }
+  }
+  box.innerHTML = ''; box.appendChild(canvas);
+}
+
+renderHistory();
+
+/* Install service worker for offline caching */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(()=> console.log('SW registered')).catch(e=>console.warn('SW failed',e));
+}
+</script>
+</body>
+</html>
