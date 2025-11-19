@@ -1,6 +1,6 @@
 {
   "short_name": "NotfallMesh",
-  "name": "Notfall Mesh Panel — Demo",
+  "name": "Notfall Mesh Panel",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#f7fbfd",
