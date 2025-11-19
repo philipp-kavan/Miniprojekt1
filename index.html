@@ -42,7 +42,7 @@
   <div style="display:flex;align-items:center;gap:12px;">
     <svg width="44" height="44" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M12 2L3 7v7c0 5 4 9 9 9s9-4 9-9V7l-9-5z" fill="white" opacity="0.12"/><path d="M12 2l9 5v7c0 5-4 9-9 9S3 19 3 14V7l9-5z" stroke="white" stroke-width="1.2" fill="none"/></svg>
     <div>
-      <h1>Notfall-Mesh Panel — Demo</h1>
+      <h1>Notfall-Mesh Panel</h1>
       <div class="subline">Erstelle eine Notfallmeldung und teile sie über dein Mesh / Telefon.</div>
     </div>
   </div>
@@ -62,14 +62,6 @@
           <option value="feuerwehr">Feuerwehr</option>
           <option value="rettung">Rettung</option>
           <option value="community">Nachbarschaft</option>
-        </select>
-      </div>
-      <div>
-        <label for="priority">Priorität</label>
-        <select id="priority">
-          <option value="hoch">Hoch (Lebensgefahr)</option>
-          <option value="mittel">Mittel (Sachschaden / Hilfe)</option>
-          <option value="niedrig">Niedrig (Info / Vorsicht)</option>
         </select>
       </div>
     </div>
@@ -159,7 +151,7 @@ function renderHistory(){
     const d = document.createElement('div'); d.className='history-item';
     d.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
       <div><strong>${item.recipient.toUpperCase()}</strong> · ${new Date(item.created).toLocaleString()}</div>
-      <div class="small">${item.priority}</div>
+      
     </div>
     <div style="margin-top:6px;">${escapeHtml(item.message)}</div>
     <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
@@ -173,7 +165,7 @@ function renderHistory(){
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
 function makePayload(obj){
-  // Basic schema: {id, recipient, priority, message, name, phone, coords, created}
+  // Basic schema: {id, recipient, message, name, phone, coords, created}
   const json = JSON.stringify(obj);
   const b64 = btoa(unescape(encodeURIComponent(json))); // safe base64
   return { json, b64 };
@@ -183,13 +175,12 @@ function genId(){ return 'm'+Math.random().toString(36).slice(2,10); }
 
 document.getElementById('createBtn').addEventListener('click', ()=>{
   const recipient = document.getElementById('recipient').value;
-  const priority = document.getElementById('priority').value;
   const message = document.getElementById('message').value.trim();
   const name = document.getElementById('name').value.trim();
   const phone = document.getElementById('phone').value.trim();
   if(!message){ alert('Bitte eine Beschreibung eingeben.'); return; }
   const now = Date.now();
-  const payloadObj = { id: genId(), recipient, priority, message, name: name||null, phone: phone||null, coords: lastCoords||null, created: now };
+  const payloadObj = { id: genId(), recipient, message, name: name||null, phone: phone||null, coords: lastCoords||null, created: now };
   const { json, b64 } = makePayload(payloadObj);
 
   // Save to history
